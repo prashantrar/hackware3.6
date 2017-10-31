@@ -1,6 +1,7 @@
 import time
 import sys
 import thread
+import picamera
 import paho.mqtt.client as mqtt
 
 global client
@@ -24,6 +25,23 @@ def startMQTTLoop():
 ################################
 ################################
 ###########Thread 1#############	
+
+################################
+################################
+###########Thread 2#############
+def camCapture(bot, update):
+        with picamera.PiCamera() as camera:
+                camera.resolution = (640, 480)
+                camera.start_preview()
+                # Camera warm-up time
+                time.sleep(2)
+                camera.capture('pi_cam.png')
+        bot.send_photo(chat_id=update.message.chat_id, photo=open('./pi_cam.png', 'rb'))
+#Thread2 is started from the
+#main thread
+################################
+################################
+###########Thread 2#############
 
 ####Start Command####
 def start(bot, update):
@@ -52,6 +70,15 @@ except:
 #####################
 ######MQTT Setup#####
 
+####Camera Command####
+def camcapture(bot, update):
+	try:
+		thread.start_new_thread(camCapture, (bot,update))
+	except:
+		print "Error: unable to start cam thread"
+#####################
+
+
 
 ####Error Handler####	
 def error(bot, update, error):
@@ -63,6 +90,7 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 dispatcher = updater.dispatcher
 
 updater.dispatcher.add_handler(CommandHandler('start', start))
+updater.dispatcher.add_handler(CommandHandler('camcapture', camcapture))
 updater.dispatcher.add_error_handler(error)
 
 # Start the Bot
